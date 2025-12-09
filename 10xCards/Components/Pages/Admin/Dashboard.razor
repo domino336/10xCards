@@ -1,0 +1,254 @@
+@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@using _10xCards.Application.DTOs.Admin
+@using _10xCards.Application.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IAdminService AdminService
+
+<PageTitle>Admin Dashboard - 10xCards</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="bi bi-speedometer2 me-2"></i>
+                Admin Dashboard
+            </h2>
+            <p class="text-muted">System-wide metrics and analytics</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-secondary" @onclick="Refresh" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise me-1"></i> 
+                @if (isLoading)
+                {
+                    <span>Refreshing...</span>
+                }
+                else
+                {
+                    <span>Refresh</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="@(() => errorMessage = null)" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (isLoading && metrics == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading metrics...</span>
+            </div>
+            <p class="mt-2">Loading dashboard data...</p>
+        </div>
+    }
+    else if (metrics != null)
+    {
+        <!-- Card Statistics -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <i class="bi bi-collection display-4 text-primary"></i>
+                        <h3 class="mt-3 mb-0">@metrics.TotalCards.ToString("N0")</h3>
+                        <p class="text-muted mb-0">Total Cards</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <i class="bi bi-robot display-4 text-info"></i>
+                        <h3 class="mt-3 mb-0">@metrics.TotalAiCards.ToString("N0")</h3>
+                        <p class="text-muted mb-0">AI Generated</p>
+                        <small class="text-muted">
+                            (@GetPercentage(metrics.TotalAiCards, metrics.TotalCards))
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <i class="bi bi-pencil display-4 text-success"></i>
+                        <h3 class="mt-3 mb-0">@metrics.TotalManualCards.ToString("N0")</h3>
+                        <p class="text-muted mb-0">Manual Cards</p>
+                        <small class="text-muted">
+                            (@GetPercentage(metrics.TotalManualCards, metrics.TotalCards))
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <i class="bi bi-check-circle display-4 text-warning"></i>
+                        <h3 class="mt-3 mb-0">@metrics.AiAcceptanceRate.ToString("P0")</h3>
+                        <p class="text-muted mb-0">AI Acceptance Rate</p>
+                        <small class="text-muted">Overall average</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Activity -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-people me-2"></i>
+                            Active Users
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h2 class="text-primary">@metrics.ActiveUsers7d</h2>
+                                <p class="text-muted mb-0">Last 7 Days</p>
+                            </div>
+                            <div class="col-6">
+                                <h2 class="text-secondary">@metrics.ActiveUsers30d</h2>
+                                <p class="text-muted mb-0">Last 30 Days</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header @(metrics.GenerationErrorsLast7d > 0 ? "bg-danger" : "bg-success") text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Generation Errors
+                        </h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h1 class="@(metrics.GenerationErrorsLast7d > 0 ? "text-danger" : "text-success")">
+                            @metrics.GenerationErrorsLast7d
+                        </h1>
+                        <p class="text-muted mb-0">In the last 7 days</p>
+                        @if (metrics.GenerationErrorsLast7d == 0)
+                        {
+                            <small class="text-success">
+                                <i class="bi bi-check-circle me-1"></i>
+                                All systems operational
+                            </small>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acceptance Percentiles -->
+        <div class="row g-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-graph-up me-2"></i>
+                            AI Acceptance Rate Percentiles
+                        </h5>
+                        <small>Distribution of acceptance rates across users (minimum 5 cards)</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <div class="p-3 border rounded">
+                                    <h6 class="text-muted mb-2">50th Percentile (Median)</h6>
+                                    <h2 class="text-primary mb-0">
+                                        @metrics.AcceptancePercentiles.P50.ToString("P0")
+                                    </h2>
+                                    <small class="text-muted">Half of users accept more than this</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 border rounded">
+                                    <h6 class="text-muted mb-2">75th Percentile</h6>
+                                    <h2 class="text-info mb-0">
+                                        @metrics.AcceptancePercentiles.P75.ToString("P0")
+                                    </h2>
+                                    <small class="text-muted">Top 25% of users accept more</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 border rounded">
+                                    <h6 class="text-muted mb-2">90th Percentile</h6>
+                                    <h2 class="text-success mb-0">
+                                        @metrics.AcceptancePercentiles.P90.ToString("P0")
+                                    </h2>
+                                    <small class="text-muted">Top 10% of users accept more</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-4">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Note:</strong> Metrics are cached for 5 minutes to improve performance. 
+            Click "Refresh" to get the latest data.
+        </div>
+    }
+</div>
+
+@code {
+    private AdminMetricsDto? metrics;
+    private bool isLoading;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        isLoading = true;
+        errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = await AdminService.GetDashboardMetricsAsync(CancellationToken.None);
+
+            if (result.IsSuccess)
+            {
+                metrics = result.Value;
+            }
+            else
+            {
+                errorMessage = result.Error;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load metrics: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetPercentage(int part, int total)
+    {
+        if (total == 0)
+            return "0%";
+        
+        return ((double)part / total).ToString("P0");
+    }
+}

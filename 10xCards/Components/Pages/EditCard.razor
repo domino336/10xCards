@@ -1,0 +1,127 @@
+@page "/cards/edit/{CardId:guid}"
+@attribute [Authorize]
+@using _10xCards.Application.DTOs.Cards
+@using _10xCards.Application.Services
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Edit Flashcard - 10xCards</PageTitle>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h2 class="mb-4">Edit Flashcard</h2>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @errorMessage
+                    <button type="button" class="btn-close" @onclick="@(() => errorMessage = null)" aria-label="Close"></button>
+                </div>
+            }
+
+            @if (isLoading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading card...</span>
+                    </div>
+                    <p class="mt-2">Loading flashcard...</p>
+                </div>
+            }
+            else if (card == null)
+            {
+                <div class="alert alert-warning">
+                    <h4 class="alert-heading">Card Not Found</h4>
+                    <p>The flashcard you're trying to edit doesn't exist or you don't have permission to edit it.</p>
+                    <hr>
+                    <div class="mb-0">
+                        <a href="/cards" class="btn btn-primary">Back to My Cards</a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card">
+                    <div class="card-body">
+                        <EditForm Model="@model" OnValidSubmit="HandleSubmit">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="alert alert-danger" />
+
+                            <div class="mb-3">
+                                <label for="frontInput" class="form-label fw-bold">
+                                    Front (Question) <span class="text-danger">*</span>
+                                </label>
+                                <InputTextArea @bind-Value="model.Front" 
+                                               class="form-control" 
+                                               id="frontInput" 
+                                               rows="3" 
+                                               placeholder="Enter the question or prompt (50-500 characters)"
+                                               disabled="@isSubmitting"
+                                               @oninput="UpdateFrontCharCount" />
+                                <div class="form-text d-flex justify-content-between">
+                                    <span>Enter a question, term, or concept</span>
+                                    <span class="@(GetCharCountClass(frontCharCount, 50, 500))">
+                                        @frontCharCount / 500 characters
+                                    </span>
+                                </div>
+                                <ValidationMessage For="@(() => model.Front)" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="backInput" class="form-label fw-bold">
+                                    Back (Answer) <span class="text-danger">*</span>
+                                </label>
+                                <InputTextArea @bind-Value="model.Back" 
+                                               class="form-control" 
+                                               id="backInput" 
+                                               rows="4" 
+                                               placeholder="Enter the answer or explanation (50-500 characters)"
+                                               disabled="@isSubmitting"
+                                               @oninput="UpdateBackCharCount" />
+                                <div class="form-text d-flex justify-content-between">
+                                    <span>Provide the answer, definition, or explanation</span>
+                                    <span class="@(GetCharCountClass(backCharCount, 50, 500))">
+                                        @backCharCount / 500 characters
+                                    </span>
+                                </div>
+                                <ValidationMessage For="@(() => model.Back)" />
+                            </div>
+
+                            <div class="d-flex gap-2 mt-4">
+                                <button type="submit" 
+                                        class="btn btn-primary" 
+                                        disabled="@isSubmitting">
+                                    @if (isSubmitting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        <span>Saving...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-save me-1"></i>
+                                        <span>Save Changes</span>
+                                    }
+                                </button>
+                                <a href="/cards" class="btn btn-outline-secondary">
+                                    <i class="bi bi-x-circle me-1"></i> Cancel
+                                </a>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Card Information</h6>
+                        <ul class="list-unstyled mb-0 small">
+                            <li><strong>Created:</strong> @card.CreatedUtc.ToLocalTime().ToString("g")</li>
+                            <li><strong>Last Updated:</strong> @card.UpdatedUtc.ToLocalTime().ToString("g")</li>
+                            <li><strong>Review Count:</strong> @card.ReviewCount</li>
+                            <li><strong>Source:</strong> @(card.GenerationMethod == _10xCards.Domain.Entities.GenerationMethod.Manual ? "Manual" : "AI Generated")</li>
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

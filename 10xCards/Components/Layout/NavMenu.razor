@@ -1,0 +1,96 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">10xCards</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="generate">
+                        <span class="bi bi-stars" aria-hidden="true"></span> Generate Cards
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="cards">
+                        <span class="bi bi-card-list" aria-hidden="true"></span> My Cards
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="review">
+                        <span class="bi bi-book" aria-hidden="true"></span> Review
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="create">
+                        <span class="bi bi-plus-square" aria-hidden="true"></span> Create Card
+                    </NavLink>
+                </div>
+
+                <AuthorizeView Roles="Admin">
+                    <Authorized Context="adminContext">
+                        <div class="nav-item px-3">
+                            <hr class="text-white-50" />
+                            <NavLink class="nav-link" href="admin/dashboard">
+                                <span class="bi bi-speedometer2" aria-hidden="true"></span> Admin Dashboard
+                            </NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+
+                @if (IsDevelopment)
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="test-error">
+                            <span class="bi bi-bug" aria-hidden="true"></span> Test Logging
+                        </NavLink>
+                    </div>
+                }
+
+                <div class="nav-item px-3 mt-auto">
+                    <hr class="text-white-50" />
+                    <div class="text-white-50 px-3 py-2 small">
+                        Logged in as: @context.User.Identity?.Name
+                    </div>
+                    <NavLink class="nav-link" href="Account/Logout">
+                        <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Logout
+                    </NavLink>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Login">
+                        <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> Login
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Register">
+                        <span class="bi bi-person-plus" aria-hidden="true"></span> Register
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </nav>
+</div>
+
+@code {
+    [Inject]
+    private IHostEnvironment Environment { get; set; } = default!;
+
+    private bool IsDevelopment => Environment.IsDevelopment();
+}
+
+

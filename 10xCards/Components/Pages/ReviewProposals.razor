@@ -1,0 +1,71 @@
+@page "/proposals/{SourceTextId:guid}"
+@attribute [Authorize]
+@inject IProposalService ProposalService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Review Proposals</PageTitle>
+
+<h2>Review Generated Proposals</h2>
+
+@if (proposals == null)
+{
+    <div class="text-center my-5">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading proposals...</p>
+    </div>
+}
+else if (!proposals.Any())
+{
+    <div class="alert alert-info" role="alert">
+        <h4 class="alert-heading">No Proposals Found</h4>
+        <p>There are no proposals for this source text.</p>
+        <hr>
+        <a href="/generate" class="btn btn-primary">Generate New Cards</a>
+    </div>
+}
+else
+{
+    <div class="mb-3">
+        <button class="btn btn-success me-2" 
+                @onclick="AcceptSelected" 
+                disabled="@(!selectedIds.Any())"
+                aria-label="Accept selected proposals">
+            Accept Selected (@selectedIds.Count)
+        </button>
+        <button class="btn btn-outline-danger" 
+                @onclick="RejectSelected" 
+                disabled="@(!selectedIds.Any())"
+                aria-label="Reject selected proposals">
+            Reject Selected
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @successMessage
+            <button type="button" class="btn-close" @onclick="@(() => successMessage = null)" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="@(() => errorMessage = null)" aria-label="Close"></button>
+        </div>
+    }
+
+    @foreach (var proposal in proposals)
+    {
+        <ProposalCard Proposal="@proposal" 
+                      IsSelected="@selectedIds.Contains(proposal.Id)"
+                      OnToggleSelect="@(() => ToggleSelect(proposal.Id))"
+                      OnEdit="@((edit) => HandleEdit(proposal.Id, edit.Front, edit.Back))"
+                      OnAccept="@(() => AcceptSingle(proposal.Id))"
+                      OnReject="@(() => RejectSingle(proposal.Id))" />
+    }
+}

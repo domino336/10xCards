@@ -1,0 +1,33 @@
+﻿<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                @if (context.User.Identity?.IsAuthenticated != true)
+                {
+                    <RedirectToLogin />
+                }
+                else
+                {
+                    <div class="alert alert-danger m-3" role="alert">
+                        <h4 class="alert-heading">Access Denied</h4>
+                        <p>You do not have permission to access this resource.</p>
+                    </div>
+                }
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="typeof(Layout.MainLayout)">
+            <div class="alert alert-warning m-3" role="alert">
+                <h4 class="alert-heading">Page not found</h4>
+                <p>Sorry, there's nothing at this address.</p>
+                <hr>
+                <p class="mb-0">
+                    <a href="/" class="btn btn-primary">Go to Home</a>
+                </p>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>

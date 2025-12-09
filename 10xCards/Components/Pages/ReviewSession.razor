@@ -1,0 +1,311 @@
+@page "/review"
+@attribute [Authorize]
+@using _10xCards.Application.DTOs.Cards
+@using _10xCards.Application.Services
+@using _10xCards.Domain.Entities
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@inject ICardService CardService
+@inject ISrService SrService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Review Session - 10xCards</PageTitle>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            @if (sessionState == SessionState.Loading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading cards...</span>
+                    </div>
+                    <p class="mt-3">Preparing your review session...</p>
+                </div>
+            }
+            else if (sessionState == SessionState.NoDueCards)
+            {
+                <div class="alert alert-success text-center py-5">
+                    <i class="bi bi-check-circle display-1 text-success"></i>
+                    <h3 class="mt-3">No cards due for review!</h3>
+                    <p class="lead">Great job! You're all caught up with your flashcards.</p>
+                    <hr>
+                    <p class="mb-0">Come back later when more cards are due, or:</p>
+                    <div class="mt-3">
+                        <a href="/cards" class="btn btn-primary me-2">
+                            <i class="bi bi-collection me-1"></i> Browse My Cards
+                        </a>
+                        <a href="/cards/create" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Create New Card
+                        </a>
+                    </div>
+                </div>
+            }
+            else if (sessionState == SessionState.ShowFront)
+            {
+                <div class="mb-3">
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar" 
+                             role="progressbar" 
+                             style="width: @GetProgressPercentage()%"
+                             aria-valuenow="@reviewedCount" 
+                             aria-valuemin="0" 
+                             aria-valuemax="@totalCards">
+                            @reviewedCount / @totalCards reviewed
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-primary shadow-lg text-center">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Question</h5>
+                    </div>
+                    <div class="card-body py-5">
+                        <p class="display-6 mb-0">@currentCard!.Front</p>
+                    </div>
+                    <div class="card-footer bg-light">
+                        <button class="btn btn-primary btn-lg px-5" @onclick="ShowAnswer">
+                            <i class="bi bi-eye me-2"></i> Show Answer
+                        </button>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    Try to recall the answer before revealing it!
+                </div>
+            }
+            else if (sessionState == SessionState.ShowBack)
+            {
+                <div class="mb-3">
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar" 
+                             role="progressbar" 
+                             style="width: @GetProgressPercentage()%"
+                             aria-valuenow="@reviewedCount" 
+                             aria-valuemin="0" 
+                             aria-valuemax="@totalCards">
+                            @reviewedCount / @totalCards reviewed
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-success shadow-lg text-center">
+                    <div class="card-header bg-light">
+                        <h6 class="text-muted mb-1">Question</h6>
+                        <p class="mb-0">@currentCard!.Front</p>
+                    </div>
+                    <div class="card-body py-5 bg-success bg-opacity-10">
+                        <h5 class="text-success mb-3">Answer</h5>
+                        <p class="display-6 mb-0">@currentCard.Back</p>
+                    </div>
+                </div>
+
+                <div class="alert alert-secondary mt-4">
+                    <h6 class="mb-3">How well did you remember?</h6>
+                    <div class="d-flex flex-column flex-md-row justify-content-center gap-3">
+                        <button class="btn btn-danger btn-lg flex-fill" 
+                                @onclick="@(() => Rate(ReviewResult.Again))">
+                            <i class="bi bi-x-circle me-2"></i>
+                            <strong>Again</strong>
+                            <small class="d-block">Didn't remember</small>
+                        </button>
+                        <button class="btn btn-warning btn-lg flex-fill" 
+                                @onclick="@(() => Rate(ReviewResult.Good))">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>Good</strong>
+                            <small class="d-block">Remembered with effort</small>
+                        </button>
+                        <button class="btn btn-success btn-lg flex-fill" 
+                                @onclick="@(() => Rate(ReviewResult.Easy))">
+                            <i class="bi bi-star me-2"></i>
+                            <strong>Easy</strong>
+                            <small class="d-block">Remembered easily</small>
+                        </button>
+                    </div>
+                </div>
+            }
+            else if (sessionState == SessionState.Finished)
+            {
+                <div class="alert alert-success text-center py-5">
+                    <i class="bi bi-trophy display-1 text-warning"></i>
+                    <h3 class="mt-3">Session Complete!</h3>
+                    <p class="lead">You've reviewed <strong>@summary!.TotalReviewed</strong> cards</p>
+                    
+                    <div class="row mt-4 g-3">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h1 class="text-danger">@summary.AgainCount</h1>
+                                    <p class="mb-0 text-muted">Again</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h1 class="text-warning">@summary.GoodCount</h1>
+                                    <p class="mb-0 text-muted">Good</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h1 class="text-success">@summary.EasyCount</h1>
+                                    <p class="mb-0 text-muted">Easy</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="/cards" class="btn btn-primary btn-lg">
+                            <i class="bi bi-collection me-2"></i> Back to My Cards
+                        </a>
+                        <a href="/review" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-arrow-clockwise me-2"></i> Start New Session
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private Queue<ReviewCardDto> cards = new();
+    private ReviewCardDto? currentCard;
+    private SessionState sessionState = SessionState.Loading;
+    private SessionSummaryDto? summary;
+    private int againCount;
+    private int goodCount;
+    private int easyCount;
+    private int totalCards;
+    private int reviewedCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReviewSession();
+    }
+
+    private async Task LoadReviewSession()
+    {
+        sessionState = SessionState.Loading;
+
+        try
+        {
+            var userId = await GetCurrentUserIdAsync();
+            var result = await CardService.GetDueCardsAsync(userId, CancellationToken.None);
+
+            if (!result.IsSuccess || result.Value == null || !result.Value.Any())
+            {
+                sessionState = SessionState.NoDueCards;
+                return;
+            }
+
+            cards = new Queue<ReviewCardDto>(result.Value);
+            totalCards = cards.Count;
+            reviewedCount = 0;
+            LoadNextCard();
+        }
+        catch (Exception)
+        {
+            sessionState = SessionState.NoDueCards;
+        }
+    }
+
+    private void LoadNextCard()
+    {
+        if (!cards.Any())
+        {
+            FinishSession();
+            return;
+        }
+
+        currentCard = cards.Dequeue();
+        sessionState = SessionState.ShowFront;
+    }
+
+    private void ShowAnswer()
+    {
+        sessionState = SessionState.ShowBack;
+    }
+
+    private async Task Rate(ReviewResult result)
+    {
+        if (currentCard == null)
+            return;
+
+        try
+        {
+            var userId = await GetCurrentUserIdAsync();
+            await SrService.RecordReviewAsync(currentCard.Id, userId, result, CancellationToken.None);
+
+            switch (result)
+            {
+                case ReviewResult.Again:
+                    againCount++;
+                    break;
+                case ReviewResult.Good:
+                    goodCount++;
+                    break;
+                case ReviewResult.Easy:
+                    easyCount++;
+                    break;
+            }
+
+            reviewedCount++;
+            LoadNextCard();
+        }
+        catch (Exception)
+        {
+            reviewedCount++;
+            LoadNextCard();
+        }
+    }
+
+    private void FinishSession()
+    {
+        summary = new SessionSummaryDto(
+            againCount + goodCount + easyCount,
+            againCount,
+            goodCount,
+            easyCount
+        );
+        sessionState = SessionState.Finished;
+    }
+
+    private double GetProgressPercentage()
+    {
+        if (totalCards == 0)
+            return 0;
+        
+        return (reviewedCount / (double)totalCards) * 100;
+    }
+
+    private async Task<Guid> GetCurrentUserIdAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true)
+            throw new InvalidOperationException("User is not authenticated");
+
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)
+            ?? throw new InvalidOperationException("User ID claim not found");
+
+        return Guid.Parse(userIdClaim.Value);
+    }
+
+    private enum SessionState
+    {
+        Loading,
+        NoDueCards,
+        ShowFront,
+        ShowBack,
+        Finished
+    }
+}

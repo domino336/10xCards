@@ -1,0 +1,45 @@
+@page "/generate"
+@attribute [Authorize]
+@inject IProposalService ProposalService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Generate Cards</PageTitle>
+
+<h2>Generate Flashcards from Text</h2>
+
+<EditForm Model="@model" OnValidSubmit="HandleGenerate">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="alert alert-danger" />
+    
+    <div class="mb-3">
+        <label for="sourceText" class="form-label">Paste your notes (50-20,000 characters)</label>
+        <textarea @bind="model.SourceText" 
+                  class="form-control" 
+                  rows="10" 
+                  id="sourceText"
+                  disabled="@isGenerating"
+                  aria-label="Source text for flashcard generation"></textarea>
+        <ValidationMessage For="@(() => model.SourceText)" />
+    </div>
+    
+    <button type="submit" class="btn btn-primary" disabled="@isGenerating" aria-label="Generate flashcards">
+        @if (isGenerating)
+        {
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            <span>Generating...</span>
+        }
+        else
+        {
+            <span>Generate Flashcards</span>
+        }
+    </button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger mt-3" role="alert">
+        @errorMessage
+        <button class="btn btn-sm btn-outline-danger ms-2" @onclick="HandleGenerate">Retry</button>
+    </div>
+}

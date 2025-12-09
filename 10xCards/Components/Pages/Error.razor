@@ -1,0 +1,74 @@
+﻿@page "/Error"
+@using System.Diagnostics
+@inject ILogger<Error> Logger
+
+<PageTitle>Error - 10xCards</PageTitle>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="alert alert-danger" role="alert">
+                <h1 class="alert-heading">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    An error occurred
+                </h1>
+                <p class="lead">We're sorry, but something went wrong while processing your request.</p>
+                <hr>
+                
+                @if (ShowRequestId)
+                {
+                    <p class="mb-0">
+                        <strong>Request ID:</strong> <code>@RequestId</code>
+                    </p>
+                    <p class="small text-muted mb-0">
+                        Please include this ID if you contact support.
+                    </p>
+                }
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">What can you do?</h5>
+                    <ul>
+                        <li>Try refreshing the page</li>
+                        <li>Go back to the <a href="/">home page</a></li>
+                        <li>Check your <a href="/cards">flashcards</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            @if (IsDevelopment)
+            {
+                <div class="alert alert-warning mt-4">
+                    <h6 class="alert-heading">Development Mode</h6>
+                    <p class="small mb-0">
+                        You're seeing this because the app is running in Development mode.
+                        Check the logs for detailed error information.
+                    </p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code{
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    [Inject]
+    private IHostEnvironment Environment { get; set; } = default!;
+
+    private string? RequestId { get; set; }
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+    private bool IsDevelopment => Environment.IsDevelopment();
+
+    protected override void OnInitialized()
+    {
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+        
+        // Log the error occurrence
+        Logger.LogError("Error page accessed. RequestId: {RequestId}, TraceIdentifier: {TraceIdentifier}", 
+            RequestId, 
+            HttpContext?.TraceIdentifier);
+    }
+}

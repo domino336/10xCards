@@ -1,0 +1,81 @@
+@page "/Account/Register"
+@inject UserManager<IdentityUser> UserManager
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager Navigation
+
+<PageTitle>Register</PageTitle>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Create Account</h2>
+                
+                <EditForm Model="@model" OnValidSubmit="HandleRegister">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="alert alert-danger" />
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <InputText @bind-Value="model.Email" 
+                                   class="form-control" 
+                                   id="email"
+                                   placeholder="name@example.com"
+                                   autocomplete="username" />
+                        <ValidationMessage For="@(() => model.Email)" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <InputText @bind-Value="model.Password" 
+                                   type="password"
+                                   class="form-control" 
+                                   id="password"
+                                   autocomplete="new-password" />
+                        <ValidationMessage For="@(() => model.Password)" />
+                        <small class="form-text text-muted">
+                            Minimum 8 characters, must include uppercase, lowercase, and digit
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                        <InputText @bind-Value="model.ConfirmPassword" 
+                                   type="password"
+                                   class="form-control" 
+                                   id="confirmPassword"
+                                   autocomplete="new-password" />
+                        <ValidationMessage For="@(() => model.ConfirmPassword)" />
+                    </div>
+                    
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @errorMessage
+                        </div>
+                    }
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Creating account...</span>
+                            }
+                            else
+                            {
+                                <span>Register</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+                
+                <hr class="my-4">
+                
+                <div class="text-center">
+                    <p class="mb-0">Already have an account? <a href="/Account/Login">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

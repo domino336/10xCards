@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="10xCards.Integration.Tests/10xCards.Integration.Tests.csproj" />
+    <Project Path="10xCards.Unit.Tests/10xCards.Unit.Tests.csproj" />
+  </Folder>
+  <Project Path="10xCards.Application/10xCards.Application.csproj" />
+  <Project Path="10xCards.Domain/10xCards.Domain.csproj" />
+  <Project Path="10xCards.Persistance/10xCards.Persistance.csproj" />
+  <Project Path="10xCards/10xCards.csproj" />
+</Solution>

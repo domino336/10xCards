@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>10xCards</RootNamespace>
+    <AssemblyName>$(AssemblyName.Replace(' ', '_'))</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include=".ai\api-plan.md" />
+    <None Include=".ai\api.md" />
+    <None Include=".ai\blazor-implementation-prompt.md" />
+    <None Include=".ai\copilot-instructions.md" />
+    <None Include=".ai\db-plan.md" />
+    <None Include=".ai\db-planning-summary.md" />
+    <None Include=".ai\prd.md" />
+    <None Include=".ai\tech-stack.md" />
+    <None Include=".ai\view-implementation-plan.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\10xCards.Persistance\10xCards.Persistance.csproj" />
+    <ProjectReference Include="..\10xCards.Application\10xCards.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
+
+</Project>

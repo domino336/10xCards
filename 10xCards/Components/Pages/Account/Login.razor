@@ -1,0 +1,76 @@
+@page "/Account/Login"
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager Navigation
+
+<PageTitle>Login</PageTitle>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">10xCards Login</h2>
+                
+                <EditForm Model="@model" OnValidSubmit="HandleLogin" FormName="LoginForm">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="alert alert-danger" />
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <InputText @bind-Value="model.Email" 
+                                   class="form-control" 
+                                   id="email"
+                                   placeholder="name@example.com"
+                                   autocomplete="username" />
+                        <ValidationMessage For="@(() => model.Email)" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <InputText @bind-Value="model.Password" 
+                                   type="password"
+                                   class="form-control" 
+                                   id="password"
+                                   autocomplete="current-password" />
+                        <ValidationMessage For="@(() => model.Password)" />
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <InputCheckbox @bind-Value="model.RememberMe" 
+                                       class="form-check-input" 
+                                       id="rememberMe" />
+                        <label class="form-check-label" for="rememberMe">
+                            Remember me
+                        </label>
+                    </div>
+                    
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @errorMessage
+                        </div>
+                    }
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Logging in...</span>
+                            }
+                            else
+                            {
+                                <span>Login</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+                
+                <hr class="my-4">
+                
+                <div class="text-center">
+                    <p class="mb-0">Don't have an account? <a href="/Account/Register">Register</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

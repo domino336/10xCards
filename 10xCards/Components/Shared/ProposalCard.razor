@@ -1,0 +1,131 @@
+@using _10xCards.Application.DTOs.Proposals
+@using System.ComponentModel.DataAnnotations
+
+<div class="card mb-3 @(IsSelected ? "border-primary" : "")" role="article" aria-label="Proposal card">
+    <div class="card-body">
+        <div class="form-check mb-2">
+            <input class="form-check-input" 
+                   type="checkbox" 
+                   checked="@IsSelected" 
+                   @onchange="@(() => OnToggleSelect.InvokeAsync())"
+                   id="@($"proposal-{Proposal.Id}")"
+                   aria-label="Select proposal">
+        </div>
+        
+        <EditForm Model="@editModel">
+            <DataAnnotationsValidator />
+            
+            <div class="mb-2">
+                <label class="form-label fw-bold" for="@($"front-{Proposal.Id}")">Front</label>
+                <InputTextArea @bind-Value="editModel.Front" 
+                               class="form-control" 
+                               rows="2" 
+                               @oninput="@(() => hasChanges = true)"
+                               id="@($"front-{Proposal.Id}")"
+                               aria-label="Front side of flashcard" />
+                <ValidationMessage For="@(() => editModel.Front)" />
+            </div>
+            
+            <div class="mb-2">
+                <label class="form-label fw-bold" for="@($"back-{Proposal.Id}")">Back</label>
+                <InputTextArea @bind-Value="editModel.Back" 
+                               class="form-control" 
+                               rows="3" 
+                               @oninput="@(() => hasChanges = true)"
+                               id="@($"back-{Proposal.Id}")"
+                               aria-label="Back side of flashcard" />
+                <ValidationMessage For="@(() => editModel.Back)" />
+            </div>
+        </EditForm>
+        
+        <div class="d-flex gap-2">
+            @if (hasChanges)
+            {
+                <button class="btn btn-sm btn-outline-primary" 
+                        @onclick="SaveEdit"
+                        aria-label="Save edits to proposal">
+                    Save Edit
+                </button>
+            }
+            <button class="btn btn-sm btn-success" 
+                    @onclick="@(() => OnAccept.InvokeAsync())"
+                    aria-label="Accept proposal">
+                Accept
+            </button>
+            <button class="btn btn-sm btn-outline-danger" 
+                    @onclick="@(() => OnReject.InvokeAsync())"
+                    aria-label="Reject proposal">
+                Reject
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The proposal data to display and edit
+    /// </summary>
+    [Parameter]
+    public ProposalDetailDto Proposal { get; set; } = default!;
+
+    /// <summary>
+    /// Whether this proposal is currently selected
+    /// </summary>
+    [Parameter]
+    public bool IsSelected { get; set; }
+
+    /// <summary>
+    /// Event callback when selection is toggled
+    /// </summary>
+    [Parameter]
+    public EventCallback OnToggleSelect { get; set; }
+
+    /// <summary>
+    /// Event callback when proposal is edited
+    /// </summary>
+    [Parameter]
+    public EventCallback<(string Front, string Back)> OnEdit { get; set; }
+
+    /// <summary>
+    /// Event callback when proposal is accepted
+    /// </summary>
+    [Parameter]
+    public EventCallback OnAccept { get; set; }
+
+    /// <summary>
+    /// Event callback when proposal is rejected
+    /// </summary>
+    [Parameter]
+    public EventCallback OnReject { get; set; }
+
+    private ProposalEditModel editModel = default!;
+    private bool hasChanges;
+
+    protected override void OnParametersSet()
+    {
+        editModel = new ProposalEditModel
+        {
+            Front = Proposal.Front,
+            Back = Proposal.Back
+        };
+        hasChanges = false;
+    }
+
+    private void SaveEdit()
+    {
+        OnEdit.InvokeAsync((editModel.Front, editModel.Back));
+        hasChanges = false;
+    }
+
+    public class ProposalEditModel
+    {
+        [Required]
+        [StringLength(500, MinimumLength = 50, ErrorMessage = "Front must be between 50 and 500 characters")]
+        public string Front { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(500, MinimumLength = 50, ErrorMessage = "Back must be between 50 and 500 characters")]
+        public string Back { get; set; } = string.Empty;
+    }
+}
+

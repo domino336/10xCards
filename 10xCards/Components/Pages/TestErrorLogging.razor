@@ -1,0 +1,79 @@
+@page "/test-error"
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Test Error Logging</PageTitle>
+
+<div class="container py-4">
+    <div class="alert alert-warning">
+        <h4>?? Test Error Logging Page</h4>
+        <p>Ta strona s³u¿y do testowania mechanizmu logowania b³êdów.</p>
+        <p><strong>UWAGA:</strong> U¿yj tylko w œrodowisku development!</p>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Wywo³aj b³¹d testowy</h5>
+            <p>Kliknij jeden z przycisków poni¿ej, aby wywo³aæ wyj¹tek i przetestowaæ logowanie:</p>
+            
+            <div class="d-grid gap-2">
+                <button class="btn btn-danger" @onclick="ThrowException">
+                    Throw Exception (uncaught)
+                </button>
+                
+                <button class="btn btn-warning" @onclick="ThrowTaskException">
+                    Throw Async Exception
+                </button>
+                
+                <button class="btn btn-info" @onclick="LogTestMessages">
+                    Log Test Messages (all levels)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success mt-3">
+            @successMessage
+        </div>
+    }
+</div>
+
+@code {
+    [Inject]
+    private ILogger<TestErrorLogging> Logger { get; set; } = default!;
+
+    private string? successMessage;
+
+    private void ThrowException()
+    {
+        Logger.LogWarning("User requested to throw test exception");
+        throw new InvalidOperationException("This is a test exception thrown from Blazor component!");
+    }
+
+    private async Task ThrowTaskException()
+    {
+        Logger.LogWarning("User requested to throw async test exception");
+        await Task.Delay(100);
+        throw new ApplicationException("This is a test async exception!");
+    }
+
+    private void LogTestMessages()
+    {
+        Logger.LogTrace("This is a TRACE message (verbose)");
+        Logger.LogDebug("This is a DEBUG message");
+        Logger.LogInformation("This is an INFORMATION message");
+        Logger.LogWarning("This is a WARNING message");
+        Logger.LogError("This is an ERROR message");
+        Logger.LogCritical("This is a CRITICAL/FATAL message");
+
+        // With structured data
+        Logger.LogInformation("User {UserId} performed action {Action} at {Timestamp}", 
+            Guid.NewGuid(), 
+            "TestLogging", 
+            DateTime.UtcNow);
+
+        successMessage = "Test messages logged! Check logs/10xcards-*.log file.";
+        StateHasChanged();
+    }
+}

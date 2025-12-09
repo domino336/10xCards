@@ -1,0 +1,76 @@
+@using _10xCards.Application.DTOs.Cards
+
+<div class="card mb-2" role="article" aria-label="Flashcard item">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <p class="mb-1 fw-medium">@Card.FrontPreview</p>
+                <small class="text-muted">Reviewed @Card.ReviewCount times</small>
+            </div>
+            <div class="col-md-3">
+                <span class="badge @GetBadgeClass()">@Card.StatusBadge</span>
+                @if (Card.NextReviewUtc.HasValue)
+                {
+                    <small class="d-block text-muted mt-1">
+                        Next: @FormatNextReview(Card.NextReviewUtc.Value)
+                    </small>
+                }
+            </div>
+            <div class="col-md-3 text-end">
+                <div class="btn-group" role="group" aria-label="Card actions">
+                    <a href="/cards/edit/@Card.Id" 
+                       class="btn btn-sm btn-outline-primary"
+                       aria-label="Edit card">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <button class="btn btn-sm btn-outline-danger" 
+                            @onclick="@(() => OnDelete.InvokeAsync())"
+                            aria-label="Delete card">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The card data to display
+    /// </summary>
+    [Parameter]
+    public CardListItemDto Card { get; set; } = default!;
+
+    /// <summary>
+    /// Event callback when delete is requested
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    private string GetBadgeClass()
+    {
+        return Card.StatusBadge switch
+        {
+            "New" => "bg-info",
+            "Due" => "bg-warning text-dark",
+            "Learned" => "bg-success",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string FormatNextReview(DateTime nextReview)
+    {
+        var diff = nextReview - DateTime.UtcNow;
+        
+        if (diff.TotalMinutes < 1)
+            return "now";
+        if (diff.TotalHours < 1)
+            return $"in {(int)diff.TotalMinutes}m";
+        if (diff.TotalDays < 1)
+            return $"in {(int)diff.TotalHours}h";
+        if (diff.TotalDays < 7)
+            return $"in {(int)diff.TotalDays}d";
+        
+        return nextReview.ToString("MMM dd");
+    }
+}
