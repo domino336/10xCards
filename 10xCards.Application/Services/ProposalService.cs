@@ -38,17 +38,125 @@ public class ProposalService : IProposalService
             _context.SourceTexts.Add(sourceTextEntity);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // TODO: Implement AI generation
-            // For now, return empty proposals list
+            // MOCK IMPLEMENTATION - Generate simple proposals from text
+            // TODO: Replace with real OpenRouter API call in production
+            var mockProposals = GenerateMockProposals(userId, sourceTextEntity.Id, sourceText);
+            
+            foreach (var proposal in mockProposals)
+            {
+                _context.CardProposals.Add(proposal);
+            }
+            
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var proposalDtos = mockProposals.Select(p => new ProposalDto(
+                p.Id,
+                p.Front,
+                p.Back,
+                p.CreatedUtc
+            )).ToArray();
+
             var response = new GenerateProposalsResponse(
                 sourceTextEntity.Id,
-                Array.Empty<ProposalDto>());
+                proposalDtos);
 
             return Result<GenerateProposalsResponse>.Success(response);
         }
         catch (Exception ex)
         {
             return Result<GenerateProposalsResponse>.Failure($"Failed to generate proposals: {ex.Message}");
+        }
+    }
+
+    private List<CardProposal> GenerateMockProposals(Guid userId, Guid sourceTextId, string sourceText)
+    {
+        var proposals = new List<CardProposal>();
+        var now = DateTime.UtcNow;
+
+        // Split text into sentences
+        var sentences = sourceText
+            .Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Where(s => s.Length > 30)
+            .Take(10)
+            .ToList();
+
+        // Generate proposals from sentences
+        var proposalCount = Math.Min(sentences.Count / 2, 5); // Max 5 proposals
+
+        for (int i = 0; i < proposalCount && i * 2 + 1 < sentences.Count; i++)
+        {
+            var sentence1 = sentences[i * 2];
+            var sentence2 = i * 2 + 1 < sentences.Count ? sentences[i * 2 + 1] : sentence1;
+
+            // Create question from first sentence
+            var front = GenerateQuestion(sentence1, i);
+            
+            // Use second sentence as answer
+            var back = sentence2.Length > 500 
+                ? sentence2.Substring(0, 497) + "..." 
+                : sentence2;
+
+            // Ensure minimum length
+            if (front.Length < 50)
+                front = $"Based on the text: {front}. Please explain in detail.";
+            
+            if (back.Length < 50)
+                back = $"According to the source material: {back}";
+
+            proposals.Add(new CardProposal
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                SourceTextId = sourceTextId,
+                Front = front.Length > 500 ? front.Substring(0, 497) + "..." : front,
+                Back = back,
+                CreatedUtc = now
+            });
+        }
+
+        // If no proposals generated, create at least one generic proposal
+        if (proposals.Count == 0)
+        {
+            var preview = sourceText.Length > 200 ? sourceText.Substring(0, 197) + "..." : sourceText;
+            proposals.Add(new CardProposal
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                SourceTextId = sourceTextId,
+                Front = "What are the main points covered in the following text? Provide a detailed summary.",
+                Back = $"The text discusses: {preview}",
+                CreatedUtc = now
+            });
+        }
+
+        return proposals;
+    }
+
+    private string GenerateQuestion(string sentence, int index)
+    {
+        // Simple question templates based on sentence content
+        var lowerSentence = sentence.ToLower();
+
+        if (lowerSentence.Contains("is") || lowerSentence.Contains("are"))
+        {
+            return $"What {sentence.Split(new[] { " is ", " are " }, StringSplitOptions.None)[0].Trim()}?";
+        }
+        else if (lowerSentence.Contains("can") || lowerSentence.Contains("could"))
+        {
+            return $"Explain: {sentence}";
+        }
+        else if (lowerSentence.Contains("because") || lowerSentence.Contains("since"))
+        {
+            var parts = sentence.Split(new[] { "because", "since" }, StringSplitOptions.None);
+            return $"Why {parts[0].Trim().ToLower()}?";
+        }
+        else
+        {
+            // Default template
+            var words = sentence.Split(' ');
+            var firstWords = string.Join(" ", words.Take(Math.Min(5, words.Length)));
+            return $"What does the text say about '{firstWords}'?";
         }
     }
 

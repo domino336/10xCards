@@ -6,6 +6,10 @@ namespace _10xCards.Components.Pages.Account;
 
 public partial class Register
 {
+    [Inject] private UserManager<IdentityUser> UserManager { get; set; } = default!;
+    [Inject] private SignInManager<IdentityUser> SignInManager { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
     private RegisterFormModel model = new();
     private bool isLoading;
     private string? errorMessage;
@@ -15,33 +19,28 @@ public partial class Register
         isLoading = true;
         errorMessage = null;
 
-        try
+        var user = new IdentityUser
         {
-            var user = new IdentityUser
-            {
-                UserName = model.Email,
-                Email = model.Email
-            };
+            UserName = model.Email,
+            Email = model.Email
+        };
 
-            var result = await UserManager.CreateAsync(user, model.Password);
+        var result = await UserManager.CreateAsync(user, model.Password);
 
-            if (result.Succeeded)
-            {
-                await SignInManager.SignInAsync(user, isPersistent: false);
-                Navigation.NavigateTo("/", forceLoad: true);
-            }
-            else
-            {
-                errorMessage = string.Join(" ", result.Errors.Select(e => e.Description));
-            }
-
-            isLoading = false;
-        }
-        catch (Exception ex)
+        if (result.Succeeded)
         {
-            isLoading = false;
-            errorMessage = $"An error occurred: {ex.Message}";
+            await SignInManager.SignInAsync(user, isPersistent: false);
+            // forceLoad: true throws NavigationException which bubbles up and triggers redirect
+            // This is EXPECTED behavior in Static SSR mode
+            Navigation.NavigateTo("/", forceLoad: true);
+            return; // This line won't be reached, but keeps code clean
         }
+        else
+        {
+            errorMessage = string.Join(" ", result.Errors.Select(e => e.Description));
+        }
+
+        isLoading = false;
     }
 
     public class RegisterFormModel

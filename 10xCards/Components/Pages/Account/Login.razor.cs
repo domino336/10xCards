@@ -6,6 +6,9 @@ namespace _10xCards.Components.Pages.Account;
 
 public partial class Login
 {
+    [Inject] private SignInManager<IdentityUser> SignInManager { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
@@ -20,46 +23,34 @@ public partial class Login
         isLoading = true;
         errorMessage = null;
 
-        try
-        {
-            var result = await SignInManager.PasswordSignInAsync(
-                model.Email,
-                model.Password,
-                model.RememberMe,
-                lockoutOnFailure: false);
+        var result = await SignInManager.PasswordSignInAsync(
+            model.Email,
+            model.Password,
+            model.RememberMe,
+            lockoutOnFailure: false);
 
-            if (result.Succeeded)
-            {
-                var returnUrl = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
-                Navigation.NavigateTo(returnUrl, forceLoad: true);
-                return;
-            }
-            else if (result.IsLockedOut)
-            {
-                errorMessage = "Your account has been locked out. Please try again later.";
-            }
-            else if (result.RequiresTwoFactor)
-            {
-                errorMessage = "Two-factor authentication is required.";
-            }
-            else
-            {
-                errorMessage = "Invalid email or password.";
-            }
-        }
-        catch (NavigationException)
+        if (result.Succeeded)
         {
-            // Navigation exceptions are expected when redirecting after login
-            return;
+            var returnUrl = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
+            // forceLoad: true throws NavigationException which bubbles up and triggers redirect
+            // This is EXPECTED behavior in Static SSR mode
+            Navigation.NavigateTo(returnUrl, forceLoad: true);
+            return; // This line won't be reached, but keeps code clean
         }
-        catch (Exception ex)
+        else if (result.IsLockedOut)
         {
-            errorMessage = $"An error occurred: {ex.Message}";
+            errorMessage = "Your account has been locked out. Please try again later.";
         }
-        finally
+        else if (result.RequiresTwoFactor)
         {
-            isLoading = false;
+            errorMessage = "Two-factor authentication is required.";
         }
+        else
+        {
+            errorMessage = "Invalid email or password.";
+        }
+
+        isLoading = false;
     }
 
     public class LoginFormModel

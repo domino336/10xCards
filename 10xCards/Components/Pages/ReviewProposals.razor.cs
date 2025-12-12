@@ -18,6 +18,8 @@ public partial class ReviewProposals
     private Dictionary<Guid, EditedProposal> edits = new();
     private string? successMessage;
     private string? errorMessage;
+    private bool isProcessing;
+    private string? lastAction;
 
     protected override async Task OnInitializedAsync()
     {
@@ -61,10 +63,15 @@ public partial class ReviewProposals
 
     private async Task AcceptSelected()
     {
-        if (!selectedIds.Any())
+        if (!selectedIds.Any() || isProcessing)
         {
             return;
         }
+
+        isProcessing = true;
+        lastAction = "accept";
+        successMessage = null;
+        errorMessage = null;
 
         try
         {
@@ -75,10 +82,23 @@ public partial class ReviewProposals
 
             if (result.IsSuccess)
             {
-                successMessage = $"Successfully accepted {result.Value} proposal(s).";
-                await LoadProposals();
+                var count = result.Value;
+                successMessage = count == 1 
+                    ? "? 1 flashcard accepted and added to your library!" 
+                    : $"? {count} flashcards accepted and added to your library!";
+                
+                // Remove accepted proposals from the list
+                proposals = proposals?.Where(p => !selectedIds.Contains(p.Id)).ToList();
+                
                 selectedIds.Clear();
                 edits.Clear();
+
+                // If no more proposals, redirect to cards after 2 seconds
+                if (proposals == null || !proposals.Any())
+                {
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/cards");
+                }
             }
             else
             {
@@ -89,14 +109,24 @@ public partial class ReviewProposals
         {
             errorMessage = $"An unexpected error occurred: {ex.Message}";
         }
+        finally
+        {
+            isProcessing = false;
+            lastAction = null;
+        }
     }
 
     private async Task RejectSelected()
     {
-        if (!selectedIds.Any())
+        if (!selectedIds.Any() || isProcessing)
         {
             return;
         }
+
+        isProcessing = true;
+        lastAction = "reject";
+        successMessage = null;
+        errorMessage = null;
 
         try
         {
@@ -105,10 +135,23 @@ public partial class ReviewProposals
 
             if (result.IsSuccess)
             {
-                successMessage = $"Successfully rejected {result.Value} proposal(s).";
-                await LoadProposals();
+                var count = result.Value;
+                successMessage = count == 1 
+                    ? "??? 1 proposal rejected and removed." 
+                    : $"??? {count} proposals rejected and removed.";
+                
+                // Remove rejected proposals from the list
+                proposals = proposals?.Where(p => !selectedIds.Contains(p.Id)).ToList();
+                
                 selectedIds.Clear();
                 edits.Clear();
+
+                // If no more proposals, redirect to generate after 2 seconds
+                if (proposals == null || !proposals.Any())
+                {
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/generate");
+                }
             }
             else
             {
@@ -119,10 +162,18 @@ public partial class ReviewProposals
         {
             errorMessage = $"An unexpected error occurred: {ex.Message}";
         }
+        finally
+        {
+            isProcessing = false;
+            lastAction = null;
+        }
     }
 
     private async Task AcceptSingle(Guid id)
     {
+        if (isProcessing)
+            return;
+
         selectedIds.Clear();
         selectedIds.Add(id);
         await AcceptSelected();
@@ -130,6 +181,9 @@ public partial class ReviewProposals
 
     private async Task RejectSingle(Guid id)
     {
+        if (isProcessing)
+            return;
+
         selectedIds.Clear();
         selectedIds.Add(id);
         await RejectSelected();

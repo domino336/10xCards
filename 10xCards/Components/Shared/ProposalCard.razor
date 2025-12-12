@@ -12,7 +12,8 @@
                    aria-label="Select proposal">
         </div>
         
-        <EditForm Model="@editModel">
+        <EditForm Model="@editModel" FormName="@($"ProposalEdit_{Proposal.Id}")">
+            <AntiforgeryToken />
             <DataAnnotationsValidator />
             
             <div class="mb-2">

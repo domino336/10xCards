@@ -1,5 +1,6 @@
 @page "/cards/edit/{CardId:guid}"
 @attribute [Authorize]
+@rendermode InteractiveServer
 @using _10xCards.Application.DTOs.Cards
 @using _10xCards.Application.Services
 @using Microsoft.AspNetCore.Authorization
@@ -43,7 +44,8 @@
             {
                 <div class="card">
                     <div class="card-body">
-                        <EditForm Model="@model" OnValidSubmit="HandleSubmit">
+                        <EditForm Model="@model" OnValidSubmit="HandleSubmit" FormName="EditCardForm">
+                            <AntiforgeryToken />
                             <DataAnnotationsValidator />
                             <ValidationSummary class="alert alert-danger" />
 

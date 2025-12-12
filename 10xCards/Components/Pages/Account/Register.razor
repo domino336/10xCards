@@ -1,7 +1,4 @@
 @page "/Account/Register"
-@inject UserManager<IdentityUser> UserManager
-@inject SignInManager<IdentityUser> SignInManager
-@inject NavigationManager Navigation
 
 <PageTitle>Register</PageTitle>
 
@@ -11,7 +8,7 @@
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">Create Account</h2>
                 
-                <EditForm Model="@model" OnValidSubmit="HandleRegister">
+                <EditForm Model="@model" OnValidSubmit="HandleRegister" FormName="RegisterForm">
                     <DataAnnotationsValidator />
                     <ValidationSummary class="alert alert-danger" />
                     

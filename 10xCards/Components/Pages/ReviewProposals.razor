@@ -1,51 +1,91 @@
 @page "/proposals/{SourceTextId:guid}"
 @attribute [Authorize]
+@rendermode InteractiveServer
 @inject IProposalService ProposalService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Review Proposals</PageTitle>
 
-<h2>Review Generated Proposals</h2>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Review Generated Proposals</h2>
+        <a href="/generate" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Generate
+        </a>
+    </div>
 
 @if (proposals == null)
 {
     <div class="text-center my-5">
-        <div class="spinner-border" role="status">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
             <span class="visually-hidden">Loading...</span>
         </div>
-        <p class="mt-2">Loading proposals...</p>
+        <p class="mt-3">Loading proposals...</p>
     </div>
 }
 else if (!proposals.Any())
 {
-    <div class="alert alert-info" role="alert">
-        <h4 class="alert-heading">No Proposals Found</h4>
+    <div class="alert alert-info text-center py-5" role="alert">
+        <i class="bi bi-info-circle display-3 text-info"></i>
+        <h4 class="alert-heading mt-3">No Proposals Found</h4>
         <p>There are no proposals for this source text.</p>
         <hr>
-        <a href="/generate" class="btn btn-primary">Generate New Cards</a>
+        <a href="/generate" class="btn btn-primary">
+            <i class="bi bi-stars me-1"></i> Generate New Cards
+        </a>
     </div>
 }
 else
 {
-    <div class="mb-3">
-        <button class="btn btn-success me-2" 
-                @onclick="AcceptSelected" 
-                disabled="@(!selectedIds.Any())"
-                aria-label="Accept selected proposals">
-            Accept Selected (@selectedIds.Count)
-        </button>
-        <button class="btn btn-outline-danger" 
-                @onclick="RejectSelected" 
-                disabled="@(!selectedIds.Any())"
-                aria-label="Reject selected proposals">
-            Reject Selected
-        </button>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0">
+                        <i class="bi bi-card-checklist me-2"></i>
+                        @proposals.Count Proposal(s) Generated
+                    </h5>
+                    <small class="text-muted">Select proposals to accept or reject</small>
+                </div>
+                <div>
+                    <button class="btn btn-success me-2" 
+                            @onclick="AcceptSelected" 
+                            disabled="@(!selectedIds.Any() || isProcessing)"
+                            aria-label="Accept selected proposals">
+                        @if (isProcessing && lastAction == "accept")
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check-circle me-1"></i>
+                        }
+                        Accept Selected (@selectedIds.Count)
+                    </button>
+                    <button class="btn btn-outline-danger" 
+                            @onclick="RejectSelected" 
+                            disabled="@(!selectedIds.Any() || isProcessing)"
+                            aria-label="Reject selected proposals">
+                        @if (isProcessing && lastAction == "reject")
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-x-circle me-1"></i>
+                        }
+                        Reject Selected
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     @if (!string.IsNullOrEmpty(successMessage))
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
             @successMessage
             <button type="button" class="btn-close" @onclick="@(() => successMessage = null)" aria-label="Close"></button>
         </div>
@@ -54,6 +94,7 @@ else
     @if (!string.IsNullOrEmpty(errorMessage))
     {
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
             @errorMessage
             <button type="button" class="btn-close" @onclick="@(() => errorMessage = null)" aria-label="Close"></button>
         </div>
@@ -68,4 +109,15 @@ else
                       OnAccept="@(() => AcceptSingle(proposal.Id))"
                       OnReject="@(() => RejectSingle(proposal.Id))" />
     }
+
+    @if (!proposals.Any())
+    {
+        <div class="text-center mt-5">
+            <p class="text-muted">All proposals have been reviewed!</p>
+            <a href="/cards" class="btn btn-primary">
+                <i class="bi bi-collection me-1"></i> Go to My Cards
+            </a>
+        </div>
+    }
 }
+</div>

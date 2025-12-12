@@ -1,4 +1,6 @@
 ﻿@page "/"
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>10xCards - Smart Flashcards</PageTitle>
 
@@ -75,7 +77,7 @@
                 <p class="card-text">
                     Create flashcards manually when you need precise control.
                 </p>
-                <a href="/create" class="btn btn-info">Create Card</a>
+                <a href="/cards/create" class="btn btn-info">Create Card</a>
             </div>
         </div>
     </div>
@@ -102,3 +104,18 @@
         </div>
     </div>
 </div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // Redirect authenticated users to /cards
+        if (user.Identity?.IsAuthenticated ?? false)
+        {
+            Navigation.NavigateTo("/cards", replace: true);
+        }
+    }
+}
+

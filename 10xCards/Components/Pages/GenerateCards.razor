@@ -1,5 +1,6 @@
 @page "/generate"
 @attribute [Authorize]
+@rendermode InteractiveServer
 @inject IProposalService ProposalService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -8,7 +9,8 @@
 
 <h2>Generate Flashcards from Text</h2>
 
-<EditForm Model="@model" OnValidSubmit="HandleGenerate">
+<EditForm Model="@model" OnValidSubmit="HandleGenerate" FormName="GenerateCardsForm">
+    <AntiforgeryToken />
     <DataAnnotationsValidator />
     <ValidationSummary class="alert alert-danger" />
     
