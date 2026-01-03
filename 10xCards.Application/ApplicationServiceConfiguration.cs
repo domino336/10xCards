@@ -13,6 +13,7 @@ namespace _10xCards.Application
             services.AddScoped<IProposalService, ProposalService>();
             services.AddScoped<ISrService, SrService>();
             services.AddScoped<IAdminService, AdminService>();
+            services.AddScoped<ICollectionService, CollectionService>();
             return services;
         }
     }

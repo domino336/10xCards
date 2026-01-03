@@ -408,6 +408,24 @@ Kryteria akceptacji:
 - Próba startu drugiej aktywnej sesji gdy jedna trwa pokazuje komunikat.
 - Po zakończeniu pierwszej można rozpocząć następną.
 
+US-051
+Tytuł: Kolekcje fiszek
+Opis: Jako użytkownik chcę móc zapisywać i edytować zestawy fiszek
+Kryteria akceptacji:
+- Użytkownik może zapisać aktualny zestaw fizek jako kolekcję 
+- Użytkownik może aktualizować kolekcję.
+- Użytkownik może usunąć kolekcję.
+- Użytkownik może przywrócić kolekcję do poprzedniej wersji (pending changes).
+- Funkcjonalność kolekcji nie jest dostępna bez logowania się do systemu
+
+US-052
+Tytuł: Bezpieczny dostęp
+Opis: Jako użytkownik chcę mieć możliwość rejestracji i logowania się do systemu w sposób zapewniający bezpieczeństwo moich danych.
+Kryteria akceptacji:
+- Logowanie i rejestracja odbywają się na tej stronie wykorzystaniu Identity.EntityFrameworkCore
+- Sposób dodania nowego usera - sposób dowolny
+
+
 ## 6. Metryki sukcesu
 M1. Współczynnik akceptacji AI: acceptedAI / generatedAI powinien osiągnąć >=75% (globalnie). Monitorowany dziennie i tygodniowo; raport percentylowy (p50, p75, p90) z wykluczeniem użytkowników <5 fiszek.
 M2. Udział AI w tworzeniu fiszek: (count fiszek AI accepted) / (count fiszek AI accepted + manual accepted) >=75%. Monitorowany tygodniowo.

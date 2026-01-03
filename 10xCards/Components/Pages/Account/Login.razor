@@ -1,4 +1,5 @@
 @page "/Account/Login"
+@using Microsoft.AspNetCore.Components.Web
 
 <PageTitle>Login</PageTitle>
 
@@ -8,45 +9,55 @@
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">10xCards Login</h2>
                 
-                <EditForm Model="@model" OnValidSubmit="HandleLogin" FormName="LoginForm">
-                    <DataAnnotationsValidator />
-                    <ValidationSummary class="alert alert-danger" />
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        @successMessage
+                    </div>
+                }
+                
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @errorMessage
+                    </div>
+                }
+                
+                <!-- Use regular HTML form to POST directly to API (cookies will work!) -->
+                <form method="post" action="/api/auth/login-form" @onsubmit="HandleSubmit" @onsubmit:preventDefault="false">
+                    <input type="hidden" name="returnUrl" value="@(string.IsNullOrEmpty(ReturnUrl) ? "/cards" : ReturnUrl)" />
                     
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
-                        <InputText @bind-Value="model.Email" 
-                                   class="form-control" 
-                                   id="email"
-                                   placeholder="name@example.com"
-                                   autocomplete="username" />
-                        <ValidationMessage For="@(() => model.Email)" />
+                        <input type="email" 
+                               name="email"
+                               class="form-control" 
+                               id="email"
+                               placeholder="name@example.com"
+                               required
+                               autocomplete="username" />
                     </div>
                     
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
-                        <InputText @bind-Value="model.Password" 
-                                   type="password"
-                                   class="form-control" 
-                                   id="password"
-                                   autocomplete="current-password" />
-                        <ValidationMessage For="@(() => model.Password)" />
+                        <input type="password"
+                               name="password"
+                               class="form-control" 
+                               id="password"
+                               required
+                               autocomplete="current-password" />
                     </div>
                     
                     <div class="mb-3 form-check">
-                        <InputCheckbox @bind-Value="model.RememberMe" 
-                                       class="form-check-input" 
-                                       id="rememberMe" />
+                        <input type="checkbox"
+                               name="rememberMe"
+                               class="form-check-input" 
+                               id="rememberMe" />
                         <label class="form-check-label" for="rememberMe">
                             Remember me
                         </label>
                     </div>
-                    
-                    @if (!string.IsNullOrEmpty(errorMessage))
-                    {
-                        <div class="alert alert-danger" role="alert">
-                            @errorMessage
-                        </div>
-                    }
                     
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary" disabled="@isLoading">
@@ -61,7 +72,7 @@
                             }
                         </button>
                     </div>
-                </EditForm>
+                </form>
                 
                 <hr class="my-4">
                 
@@ -72,3 +83,4 @@
         </div>
     </div>
 </div>
+

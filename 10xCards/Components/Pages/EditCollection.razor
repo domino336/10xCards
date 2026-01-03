@@ -1,0 +1,210 @@
+@page "/collections/{CollectionId:guid}/edit"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using _10xCards.Application.Services
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Edit Collection - 10xCards</PageTitle>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            @if (isLoading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (collection == null)
+            {
+                <div class="alert alert-danger">
+                    <h4>Collection not found</h4>
+                    <p>@errorMessage</p>
+                    <a href="/collections" class="btn btn-primary">Back to Collections</a>
+                </div>
+            }
+            else
+            {
+                <h2 class="mb-4">Edit Collection</h2>
+
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @successMessage
+                        <button type="button" class="btn-close" @onclick="@(() => successMessage = null)"></button>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @errorMessage
+                        <button type="button" class="btn-close" @onclick="@(() => errorMessage = null)"></button>
+                    </div>
+                }
+
+                <EditForm Model="@model" OnValidSubmit="HandleUpdate">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Collection Name *</label>
+                        <InputText id="name" 
+                                   @bind-Value="model.Name" 
+                                   class="form-control" 
+                                   disabled="@isSubmitting" />
+                        <ValidationMessage For="@(() => model.Name)" class="text-danger" />
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="description" class="form-label">Description</label>
+                        <InputTextArea id="description" 
+                                       @bind-Value="model.Description" 
+                                       class="form-control" 
+                                       rows="3"
+                                       disabled="@isSubmitting" />
+                        <ValidationMessage For="@(() => model.Description)" class="text-danger" />
+                    </div>
+
+                    <div class="d-flex gap-2 mb-4">
+                        <button type="submit" 
+                                class="btn btn-primary" 
+                                disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <span>Saving...</span>
+                            }
+                            else
+                            {
+                                <span><i class="bi bi-save"></i> Save Changes</span>
+                            }
+                        </button>
+                        <a href="/collections/@CollectionId" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </EditForm>
+
+                <hr class="my-4" />
+
+                <h4 class="mb-3">Manage Flashcards</h4>
+                
+                <div class="mb-3">
+                    <button class="btn btn-success" @onclick="ShowAddCardsModal" disabled="@isSubmitting">
+                        <i class="bi bi-plus-circle"></i> Add More Cards
+                    </button>
+                </div>
+
+                @if (collection.Cards.Any())
+                {
+                    <div class="mb-3">
+                        <button class="btn btn-sm btn-outline-primary me-2" @onclick="SelectAllCards">
+                            Select All
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary me-2" @onclick="DeselectAllCards">
+                            Deselect All
+                        </button>
+                        <button class="btn btn-sm btn-danger" 
+                                @onclick="RemoveSelectedCards" 
+                                disabled="@(!selectedCardIds.Any() || isSubmitting)">
+                            <i class="bi bi-trash"></i> Remove Selected (@selectedCardIds.Count)
+                        </button>
+                    </div>
+
+                    @foreach (var card in collection.Cards)
+                    {
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <input class="form-check-input" 
+                                               type="checkbox" 
+                                               checked="@selectedCardIds.Contains(card.CardId)"
+                                               @onchange="@(() => ToggleCardSelection(card.CardId))"
+                                               disabled="@isSubmitting" />
+                                    </div>
+                                    <div class="col">
+                                        <strong>@TruncateText(card.Front, 80)</strong>
+                                        <br />
+                                        <small class="text-muted">@TruncateText(card.Back, 100)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <p class="mb-0">No flashcards in this collection yet. Add some using the button above!</p>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@if (showAddCardsModal && availableCardsToAdd != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Flashcards to Collection</h5>
+                    <button type="button" class="btn-close" @onclick="HideAddCardsModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!availableCardsToAdd.Any())
+                    {
+                        <div class="alert alert-info">
+                            <p class="mb-0">All your flashcards are already in this collection!</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="SelectAllAddCards">
+                                Select All
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="DeselectAllAddCards">
+                                Deselect All
+                            </button>
+                            <span class="ms-3 text-muted">Selected: @cardsToAdd.Count</span>
+                        </div>
+
+                        @foreach (var card in availableCardsToAdd)
+                        {
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="add-card-@card.Id" 
+                                       checked="@cardsToAdd.Contains(card.Id)"
+                                       @onchange="@(() => ToggleAddCard(card.Id))" />
+                                <label class="form-check-label" for="add-card-@card.Id">
+                                    <strong>@TruncateText(card.FrontPreview, 60)</strong>
+                                </label>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideAddCardsModal">
+                        Cancel
+                    </button>
+                    <button type="button" 
+                            class="btn btn-primary" 
+                            @onclick="HandleAddCards"
+                            disabled="@(!cardsToAdd.Any() || isSubmitting)">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Add Selected Cards (@cardsToAdd.Count)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

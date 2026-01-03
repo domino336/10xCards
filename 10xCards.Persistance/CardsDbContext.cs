@@ -21,12 +21,18 @@ public sealed class CardsDbContext : IdentityDbContext<IdentityUser>
     public DbSet<AcceptanceEvent> AcceptanceEvents => Set<AcceptanceEvent>();
     public DbSet<ActiveGeneration> ActiveGenerations => Set<ActiveGeneration>();
     public DbSet<GenerationError> GenerationErrors => Set<GenerationError>();
+    public DbSet<CardCollection> CardCollections => Set<CardCollection>();
+    public DbSet<CardCollectionCard> CardCollectionCards => Set<CardCollectionCard>();
+    public DbSet<CardCollectionBackup> CardCollectionBackups => Set<CardCollectionBackup>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfiguration(new ActiveGenerationConfiguration());
         modelBuilder.ApplyConfiguration(new CardProgressConfiguration());
+        modelBuilder.ApplyConfiguration(new CardCollectionConfiguration());
+        modelBuilder.ApplyConfiguration(new CardCollectionCardConfiguration());
+        modelBuilder.ApplyConfiguration(new CardCollectionBackupConfiguration());
         // ...other configurations
     }
 }

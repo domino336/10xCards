@@ -1011,7 +1011,20 @@ using (var scope = app.Services.CreateScope())
 - [ ] Session persistence (localStorage backup)
 - [ ] Progress tracking
 
-**Faza 5: Admin i finalizacja (Week 9-10)**
+**Faza 5: Kolekcje fiszek (US-051) ✅ COMPLETED**
+- [x] Domain entities (`CardCollection`, `CardCollectionCard`, `CardCollectionBackup`)
+- [x] EF Core configurations
+- [x] `ICollectionService` + `CollectionService`
+- [x] DTOs (CollectionDto, CollectionDetailDto, PagedCollectionsResponse)
+- [ ] Migracja bazy danych: `dotnet ef migrations add AddCardCollections --project 10xCards.Persistance --startup-project 10xCards`
+- [x] `Collections.razor` (lista kolekcji)
+- [x] `CreateCollection.razor` (tworzenie z wyborem fiszek)
+- [x] `CollectionDetail.razor` (szczegóły + zarządzanie fiskami)
+- [x] `EditCollection.razor` (edycja + restore backup + add/remove cards)
+- [x] Nawigacja: dodano link "Collections" w menu
+- [ ] Testing: utworzenie, edycja, restore, delete, autoryzacja
+
+**Faza 6: Admin i finalizacja (Week 11-12)**
 - [ ] `IAdminService` + agregacje SQL
 - [ ] `Admin/Dashboard.razor`
 - [ ] Caching metryk

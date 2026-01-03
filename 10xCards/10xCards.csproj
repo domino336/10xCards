@@ -17,6 +17,8 @@
     <None Include=".ai\db-planning-summary.md" />
     <None Include=".ai\prd.md" />
     <None Include=".ai\tech-stack.md" />
+    <None Include=".ai\us-051-deployment-guide.md" />
+    <None Include=".ai\us-051-implementation-summary.md" />
     <None Include=".ai\view-implementation-plan.md" />
   </ItemGroup>
 

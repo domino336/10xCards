@@ -38,6 +38,9 @@ services.AddRazorComponents()
 services.AddPersistance();
 services.AddApplication();
 
+// Add HttpClient for API calls
+services.AddHttpClient();
+
 // Add memory cache for admin metrics
 services.AddMemoryCache();
 
@@ -106,6 +109,102 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// API endpoints for authentication (to avoid Blazor Server headers issue)
+app.MapPost("/api/auth/login", async (
+    LoginRequest request,
+    SignInManager<IdentityUser> signInManager,
+    ILogger<Program> logger,
+    HttpContext httpContext) =>
+{
+    logger.LogInformation("Login attempt for {Email}", request.Email);
+    
+    var result = await signInManager.PasswordSignInAsync(
+        request.Email, 
+        request.Password, 
+        request.RememberMe, 
+        lockoutOnFailure: false);
+    
+    if (result.Succeeded)
+    {
+        logger.LogInformation("Login successful for {Email}, Cookie set: {HasCookie}", 
+            request.Email, 
+            httpContext.Response.Headers.ContainsKey("Set-Cookie"));
+        return Results.Ok(new { success = true });
+    }
+    else if (result.IsLockedOut)
+    {
+        return Results.BadRequest(new { success = false, error = "Your account has been locked out." });
+    }
+    else if (result.RequiresTwoFactor)
+    {
+        return Results.BadRequest(new { success = false, error = "Two-factor authentication is required." });
+    }
+    else
+    {
+        logger.LogWarning("Login failed for {Email}", request.Email);
+        return Results.BadRequest(new { success = false, error = "Invalid email or password." });
+    }
+})
+.AllowAnonymous();
+
+// Form-based login endpoint (for traditional HTML form submission)
+app.MapPost("/api/auth/login-form", async (
+    HttpContext httpContext,
+    SignInManager<IdentityUser> signInManager,
+    ILogger<Program> logger) =>
+{
+    var form = await httpContext.Request.ReadFormAsync();
+    var email = form["email"].ToString();
+    var password = form["password"].ToString();
+    var rememberMe = form["rememberMe"].ToString() == "on";
+    var returnUrl = form["returnUrl"].ToString();
+    
+    if (string.IsNullOrEmpty(returnUrl))
+        returnUrl = "/cards";
+    
+    logger.LogInformation("Form login attempt for {Email}", email);
+    
+    var result = await signInManager.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: false);
+    
+    if (result.Succeeded)
+    {
+        logger.LogInformation("Form login successful for {Email}", email);
+        return Results.Redirect(returnUrl);
+    }
+    else
+    {
+        logger.LogWarning("Form login failed for {Email}", email);
+        var error = result.IsLockedOut ? "Account locked out" : "Invalid email or password";
+        return Results.Redirect($"/Account/Login?error={Uri.EscapeDataString(error)}");
+    }
+})
+.AllowAnonymous();
+
+app.MapPost("/api/auth/register", async (
+    RegisterRequest request,
+    UserManager<IdentityUser> userManager,
+    SignInManager<IdentityUser> signInManager) =>
+{
+    var user = new IdentityUser
+    {
+        UserName = request.Email,
+        Email = request.Email
+    };
+
+    var result = await userManager.CreateAsync(user, request.Password);
+
+    if (result.Succeeded)
+    {
+        await signInManager.SignInAsync(user, isPersistent: false);
+        return Results.Ok(new { success = true });
+    }
+    else
+    {
+        return Results.BadRequest(new { success = false, errors = result.Errors.Select(e => e.Description) });
+    }
+})
+.AllowAnonymous();
 
 // Apply migrations and seed test user for development
 if (app.Environment.IsDevelopment())
@@ -215,3 +314,7 @@ finally
 {
     await Log.CloseAndFlushAsync();
 }
+
+// Request DTOs for authentication API endpoints
+record LoginRequest(string Email, string Password, bool RememberMe);
+record RegisterRequest(string Email, string Password);

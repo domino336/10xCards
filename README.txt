@@ -31,3 +31,11 @@ Credentials:
 6.	XSS sanitization - Card content sanitization
 7.	Performance tuning - Database indexes, query optimization
 ---
+
+
+Zadania:
+US-051
+US-052
+Planowanie testy unit i e2e(pewnie Playwright ) i implmentacja (https://gitingest.com/ zrobic sttrukture i do puchacza)
+https://github.com/przeprogramowani/10x-magic-docs
+https://docs.github.com/en/actions/get-started/quickstart

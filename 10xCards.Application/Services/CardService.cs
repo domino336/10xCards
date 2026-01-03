@@ -81,12 +81,6 @@ public sealed class CardService : ICardService
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-            return Result<PagedCardsResponse>.Failure("Page number must be greater than 0");
-        
-        if (pageSize < 1 || pageSize > 100)
-            return Result<PagedCardsResponse>.Failure("Page size must be between 1 and 100");
-
         IQueryable<Card> query = _db.Cards
             .Where(c => c.UserId == userId)
             .Include(c => c.Progress);
