@@ -11,7 +11,7 @@
                 
                 @if (!string.IsNullOrEmpty(successMessage))
                 {
-                    <div class="alert alert-success" role="alert">
+                    <div class="alert alert-success" role="alert" data-testid="success-message">
                         <i class="bi bi-check-circle-fill me-2"></i>
                         @successMessage
                     </div>
@@ -19,13 +19,13 @@
                 
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    <div class="alert alert-danger" role="alert">
+                    <div class="alert alert-danger" role="alert" data-testid="error-message">
                         @errorMessage
                     </div>
                 }
                 
                 <!-- Use regular HTML form to POST directly to API (cookies will work!) -->
-                <form method="post" action="/api/auth/login-form" @onsubmit="HandleSubmit" @onsubmit:preventDefault="false">
+                <form method="post" action="/api/auth/login-form" @onsubmit="HandleSubmit" @onsubmit:preventDefault="false" data-testid="login-form">
                     <input type="hidden" name="returnUrl" value="@(string.IsNullOrEmpty(ReturnUrl) ? "/cards" : ReturnUrl)" />
                     
                     <div class="mb-3">
@@ -36,7 +36,8 @@
                                id="email"
                                placeholder="name@example.com"
                                required
-                               autocomplete="username" />
+                               autocomplete="username"
+                               data-testid="email-input" />
                     </div>
                     
                     <div class="mb-3">
@@ -46,21 +47,23 @@
                                class="form-control" 
                                id="password"
                                required
-                               autocomplete="current-password" />
+                               autocomplete="current-password"
+                               data-testid="password-input" />
                     </div>
                     
                     <div class="mb-3 form-check">
                         <input type="checkbox"
                                name="rememberMe"
                                class="form-check-input" 
-                               id="rememberMe" />
+                               id="rememberMe"
+                               data-testid="remember-me-checkbox" />
                         <label class="form-check-label" for="rememberMe">
                             Remember me
                         </label>
                     </div>
                     
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                        <button type="submit" class="btn btn-primary" disabled="@isLoading" data-testid="login-button">
                             @if (isLoading)
                             {
                                 <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>

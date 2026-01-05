@@ -4,6 +4,7 @@
     <File Path="Directory.Packages.props" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="10xCards.E2E.Tests/10xCards.E2E.Tests.csproj" Id="90e34392-68ee-469f-a4cc-0185d87b6bdc" />
     <Project Path="10xCards.Integration.Tests/10xCards.Integration.Tests.csproj" />
     <Project Path="10xCards.Unit.Tests/10xCards.Unit.Tests.csproj" />
   </Folder>
