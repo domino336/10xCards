@@ -15,6 +15,7 @@
     <None Include=".ai\copilot-instructions.md" />
     <None Include=".ai\db-plan.md" />
     <None Include=".ai\db-planning-summary.md" />
+    <None Include=".ai\github-action.mdc" />
     <None Include=".ai\prd.md" />
     <None Include=".ai\tech-stack.md" />
     <None Include=".ai\test-plan.md" />

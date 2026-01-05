@@ -1,0 +1,283 @@
+name: Pull Request CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+      - '!.github/workflows/**'
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Build Solution
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            **/bin/Release/**
+            **/obj/Release/**
+          retention-days: 1
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Run unit tests with coverage
+        run: |
+          dotnet test 10xCards.Unit.Tests/10xCards.Unit.Tests.csproj \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage/unit
+      
+      - name: Upload unit test coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/unit/**/coverage.cobertura.xml
+          flags: unittests
+          name: unit-tests-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: ./coverage/unit
+          retention-days: 7
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build E2E tests project
+        run: dotnet build 10xCards.E2E.Tests/10xCards.E2E.Tests.csproj --configuration Release --no-restore
+      
+      - name: Install Playwright browsers
+        run: pwsh 10xCards.E2E.Tests/bin/Release/net9.0/playwright.ps1 install --with-deps chromium
+      
+      - name: Prepare SQLite database
+        run: |
+          # Ensure database directory exists
+          mkdir -p 10xCards
+          # Database will be created automatically by the app on startup
+      
+      - name: Start application in background
+        run: |
+          cd 10xCards
+          dotnet run --no-build --configuration Release &
+          echo $! > ../app.pid
+          # Wait for app to start
+          sleep 15
+          # Verify app is running
+          curl -f http://localhost:5077 || (echo "App failed to start" && exit 1)
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5077
+      
+      - name: Run E2E tests with coverage
+        run: |
+          dotnet test 10xCards.E2E.Tests/10xCards.E2E.Tests.csproj \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage/e2e
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+      
+      - name: Stop application
+        if: always()
+        run: |
+          if [ -f app.pid ]; then
+            kill $(cat app.pid) || true
+          fi
+          # Fallback - kill any dotnet processes
+          pkill -f "dotnet.*10xCards" || true
+      
+      - name: Upload E2E test coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/e2e/**/coverage.cobertura.xml
+          flags: e2etests
+          name: e2e-tests-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      
+      - name: Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: ./coverage/e2e
+          retention-days: 7
+      
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: 10xCards.E2E.Tests/test-results/
+          retention-days: 7
+
+  status-comment:
+    name: Post Status Comment
+    runs-on: ubuntu-latest
+    needs: [build, unit-tests, e2e-tests]
+    if: always()
+    permissions:
+      pull-requests: write
+    
+    steps:
+      - name: Download unit test results
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-test-results
+          path: ./results/unit
+        continue-on-error: true
+      
+      - name: Download E2E test results
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-test-results
+          path: ./results/e2e
+        continue-on-error: true
+      
+      - name: Determine overall status
+        id: status
+        run: |
+          BUILD_STATUS="${{ needs.build.result }}"
+          UNIT_STATUS="${{ needs.unit-tests.result }}"
+          E2E_STATUS="${{ needs.e2e-tests.result }}"
+          
+          if [ "$BUILD_STATUS" == "success" ] && [ "$UNIT_STATUS" == "success" ] && [ "$E2E_STATUS" == "success" ]; then
+            echo "result=success" >> $GITHUB_OUTPUT
+            echo "emoji=?" >> $GITHUB_OUTPUT
+            echo "message=All checks passed successfully!" >> $GITHUB_OUTPUT
+          else
+            echo "result=failure" >> $GITHUB_OUTPUT
+            echo "emoji=?" >> $GITHUB_OUTPUT
+            echo "message=Some checks failed. Please review the details below." >> $GITHUB_OUTPUT
+          fi
+          
+          echo "build_status=$BUILD_STATUS" >> $GITHUB_OUTPUT
+          echo "unit_status=$UNIT_STATUS" >> $GITHUB_OUTPUT
+          echo "e2e_status=$E2E_STATUS" >> $GITHUB_OUTPUT
+      
+      - name: Create status comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const buildStatus = '${{ steps.status.outputs.build_status }}';
+            const unitStatus = '${{ steps.status.outputs.unit_status }}';
+            const e2eStatus = '${{ steps.status.outputs.e2e_status }}';
+            const overallEmoji = '${{ steps.status.outputs.emoji }}';
+            const overallMessage = '${{ steps.status.outputs.message }}';
+            
+            const statusEmoji = (status) => {
+              switch(status) {
+                case 'success': return '?';
+                case 'failure': return '?';
+                case 'cancelled': return '??';
+                case 'skipped': return '??';
+                default: return '?';
+              }
+            };
+            
+            const comment = `## ${overallEmoji} PR CI Status
+            
+            ${overallMessage}
+            
+            ### Test Results
+            
+            | Job | Status | Result |
+            |-----|--------|--------|
+            | Build | ${statusEmoji(buildStatus)} | \`${buildStatus}\` |
+            | Unit Tests | ${statusEmoji(unitStatus)} | \`${unitStatus}\` |
+            | E2E Tests | ${statusEmoji(e2eStatus)} | \`${e2eStatus}\` |
+            
+            ### Details
+            
+            - **Workflow Run**: [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - **Commit**: ${{ github.event.pull_request.head.sha }}
+            - **Branch**: \`${{ github.head_ref }}\`
+            
+            ${buildStatus !== 'success' ? '?? **Build failed** - Please fix build errors before proceeding.\n' : ''}
+            ${unitStatus !== 'success' ? '?? **Unit tests failed** - Please review failing unit tests.\n' : ''}
+            ${e2eStatus !== 'success' ? '?? **E2E tests failed** - Please review failing E2E tests.\n' : ''}
+            
+            ---
+            <sub>Generated by GitHub Actions | Workflow: \`pull-request.yml\` | Run ID: ${{ github.run_id }}</sub>
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

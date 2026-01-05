@@ -1,0 +1,56 @@
+# Codecov Configuration
+# https://docs.codecov.com/docs/codecov-yaml
+
+codecov:
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+  
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        if_ci_failed: error
+    
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+
+flags:
+  unittests:
+    paths:
+      - "10xCards.Application/"
+      - "10xCards.Domain/"
+      - "10xCards.Persistance/"
+    carryforward: true
+  
+  e2etests:
+    paths:
+      - "10xCards/"
+      - "10xCards.Application/"
+    carryforward: true
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  
+ignore:
+  - "**/*.razor"
+  - "**/*.cshtml"
+  - "**/obj/**"
+  - "**/bin/**"
+  - "**/*Tests/**"
+  - "**/Migrations/**"
+  - "**/wwwroot/**"
+  - "**/*.js"
+  - "**/*.css"

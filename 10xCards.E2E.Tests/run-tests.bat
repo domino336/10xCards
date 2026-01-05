@@ -11,7 +11,7 @@ REM Przejdz do katalogu solucji
 cd /d "%~dp0.."
 
 echo [1/4] Budowanie projektu...
-dotnet build 10xCards.E2E.Tests
+dotnet build
 if %ERRORLEVEL% NEQ 0 (
     echo Blad budowania projektu!
     pause
@@ -29,9 +29,9 @@ if not exist "10xCards.E2E.Tests\bin\Debug\net9.0\.playwright" (
 echo.
 
 echo [3/4] Uruchamianie aplikacji w tle...
-start /B dotnet run --project 10xCards --no-build
-echo Czekam 10 sekund na uruchomienie aplikacji...
-timeout /t 10 /nobreak > nul
+start "10xCards App" /B dotnet run --project 10xCards --no-build
+echo Czekam 15 sekund na uruchomienie aplikacji...
+timeout /t 15 /nobreak > nul
 echo.
 
 echo [4/4] Uruchamianie testow E2E...
@@ -46,8 +46,10 @@ echo ========================================
 echo Zatrzymywanie aplikacji...
 echo ========================================
 
-REM Zatrzymaj wszystkie procesy dotnet dla 10xCards
-taskkill /F /FI "IMAGENAME eq dotnet.exe" /FI "WINDOWTITLE eq *10xCards*" 2>nul
+REM Zatrzymaj proces dotnet z tytu³em "10xCards App"
+taskkill /F /FI "WINDOWTITLE eq 10xCards App*" 2>nul
+REM Backup - zatrzymaj wszystkie procesy dotnet (opcjonalne, zakomentowane domyslnie)
+REM taskkill /F /IM dotnet.exe 2>nul
 
 REM Powrot do oryginalnego katalogu
 cd /d "%ORIGINAL_DIR%"
