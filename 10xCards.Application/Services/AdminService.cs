@@ -36,7 +36,7 @@ public sealed class AdminService : IAdminService
             var sevenDaysAgo = now.AddDays(-7);
             var thirtyDaysAgo = now.AddDays(-30);
 
-            // Total cards
+            // Total cardss
             var totalCards = await _db.Cards.CountAsync(cancellationToken);
             var aiCards = await _db.Cards.CountAsync(c => c.GenerationMethod == GenerationMethod.Ai, cancellationToken);
             var manualCards = totalCards - aiCards;

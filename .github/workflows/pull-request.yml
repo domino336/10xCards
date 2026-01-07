@@ -128,17 +128,23 @@ jobs:
       
       - name: Start application in background
         run: |
-          cd 10xCards
-          dotnet run --no-build --configuration Release &
-          echo $! > ../app.pid
-          # Wait for app to start
-          sleep 15
-          # Verify app is running
-          curl -f http://localhost:5077 || (echo "App failed to start" && exit 1)
+          dotnet run \
+            --project 10xCards/10xCards.csproj \
+            --configuration Release \
+            > app.log 2>&1 &
+          echo $! > app.pid
+
+          echo "Waiting for app..."
+          sleep 20
+
+          echo "==== APPLICATION LOG ===="
+          cat app.log
+
+          curl -v http://localhost:5077 || exit 1
         env:
           ASPNETCORE_ENVIRONMENT: Development
           ASPNETCORE_URLS: http://localhost:5077
-      
+
       - name: Run E2E tests with coverage
         run: |
           dotnet test 10xCards.E2E.Tests/10xCards.E2E.Tests.csproj \
